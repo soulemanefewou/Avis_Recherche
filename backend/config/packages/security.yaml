@@ -1,0 +1,45 @@
+security:
+    password_hashers:
+        Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
+
+    providers:
+        app_user_provider:
+            entity:
+                class: App\Entity\Utilisateur
+                property: email
+
+    firewalls:
+        dev:
+            pattern: ^/(_(profiler|wdt))/
+            security: false
+
+        main:
+            lazy: true
+            provider: app_user_provider
+            user_checker: App\Security\CompteChecker
+            json_login:
+                check_path: api_login
+                username_path: email
+                password_path: password
+                success_handler: lexik_jwt_authentication.handler.authentication_success
+                failure_handler: lexik_jwt_authentication.handler.authentication_failure
+            jwt: ~
+            logout:
+                path: app_logout
+
+    role_hierarchy:
+        ROLE_FONDATEUR: ROLE_SUPER_ADMIN
+        ROLE_SUPER_ADMIN: [ROLE_USER, ROLE_COMMISSARIAT]
+        ROLE_COMMISSARIAT: ROLE_USER
+
+    access_control:
+        - { path: ^/api/login, roles: PUBLIC_ACCESS }
+        - { path: ^/api/register, roles: PUBLIC_ACCESS }
+        - { path: ^/api/commissariat-demandes, roles: PUBLIC_ACCESS, methods: [POST] }
+        - { path: ^/api/regions, roles: PUBLIC_ACCESS, methods: [GET] }
+        - { path: ^/api/avis-recherches, roles: PUBLIC_ACCESS, methods: [GET] }
+        - { path: ^/api/fondateur, roles: ROLE_FONDATEUR }
+        - { path: ^/api/super-admin, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/admin, roles: ROLE_SUPER_ADMIN }
+        - { path: ^/api/commissariat, roles: ROLE_COMMISSARIAT }
+        - { path: ^/api/, roles: IS_AUTHENTICATED_FULLY }
