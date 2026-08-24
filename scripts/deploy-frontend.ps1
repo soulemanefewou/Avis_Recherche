@@ -13,10 +13,15 @@ param(
     [Parameter(Mandatory = $true)][string]$VercelToken,
     [Parameter(Mandatory = $true)][string]$ApiBaseUrl,
     [string]$ProjectName = "avis-recherche",
-    [string]$FrontendDir = (Join-Path (Split-Path $PSScriptRoot -Parent) "frontend")
+    [string]$FrontendDir = ""
 )
 
 $ErrorActionPreference = "Stop"
+
+if (-not $FrontendDir) {
+    # $PSScriptRoot est vide dans les valeurs par defaut de param() sous PS 5.1
+    $FrontendDir = Join-Path (Split-Path $PSScriptRoot -Parent) "frontend"
+}
 
 if (-not (Test-Path (Join-Path $FrontendDir ".env.local"))) {
     throw "frontend\.env.local introuvable (config Firebase necessaire)"
@@ -29,10 +34,13 @@ function Invoke-Vercel {
     param([string[]]$ArgumentList, [string]$Stdin)
     Push-Location $FrontendDir
     try {
+        # Passage par cmd /c : sous PS 5.1, 2>&1 sur un natif transforme
+        # stderr en erreurs fatales quand ErrorActionPreference = Stop.
+        $cmdLine = "npx.cmd vercel " + (($ArgumentList | ForEach-Object { '"' + $_ + '"' }) -join " ") + " --token $VercelToken 2>&1"
         if ($PSBoundParameters.ContainsKey("Stdin")) {
-            return ($Stdin | & npx.cmd vercel @ArgumentList --token $VercelToken 2>&1 | Out-String)
+            return ($Stdin | cmd /c $cmdLine | Out-String)
         }
-        return (& npx.cmd vercel @ArgumentList --token $VercelToken 2>&1 | Out-String)
+        return (cmd /c $cmdLine | Out-String)
     } finally { Pop-Location }
 }
 
@@ -70,15 +78,16 @@ foreach ($key in $vars.Keys) {
     }
 }
 
-# NEXT_PUBLIC_API_URL doit pointer vers {api}/api (base des appels directs eventuels)
+# NEXT_PUBLIC_API_URL : utilisee par le composant serveur OG (fetch direct Render)
 try { $null = Invoke-Vercel -ArgumentList @("env", "rm", "NEXT_PUBLIC_API_URL", "production", "--yes") } catch {}
-$null = Invoke-Vercel -ArgumentList @("env", "add", "NEXT_PUBLIC_API_URL", "production") -Stdin "$api/api"
-Write-Host ("   + NEXT_PUBLIC_API_URL = {0}/api" -f $api)
+$null = Invoke-Vercel -ArgumentList @("env", "add", "NEXT_PUBLIC_API_URL", "production") -Stdin $api
+Write-Host ("   + NEXT_PUBLIC_API_URL = {0}" -f $api)
 
 # ---------- 3. Deploiement production ----------
 Write-Host ">> Build et deploiement production (5-10 min)..."
 $out = Invoke-Vercel -ArgumentList @("deploy", "--prod", "--yes")
-$url = ([regex]::Matches($out, "https://[^\s]+")).Value | Select-Object -Last 1
+# On ne garde que les URLs *.vercel.app (la sortie inclut un bloc JSON)
+$url = @([regex]::Matches($out, "https://[A-Za-z0-9.\-]+\.vercel\.app")).Value | Select-Object -Last 1
 if (-not $url) { throw "Deploiement sans URL retournee. Sortie :`n$out" }
 
 Write-Host ""
