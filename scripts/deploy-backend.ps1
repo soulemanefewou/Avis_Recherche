@@ -23,7 +23,10 @@ param(
     [string]$AdminPassword,
     [string]$AdminNom = "Fondateur",
     [string]$AdminPrenom = "Avis",
-    [string]$AdminTelephone = "+237600000000"
+    [string]$AdminTelephone = "+237600000000",
+    # Force la creation/sync du schema au demarrage du conteneur (plans gratuits :
+    # ni jobs one-off ni preDeploy). A re-passer a false (ou omettre) apres usage.
+    [switch]$BootstrapSchema
 )
 
 $ErrorActionPreference = "Stop"
@@ -34,13 +37,20 @@ function Invoke-Render {
     param([string]$Method, [string]$Uri, $Body)
     $headers = @{ Authorization = "Bearer $RenderApiKey"; Accept = "application/json" }
     $params = @{ Method = $Method; Uri = $Uri; Headers = $headers; ContentType = "application/json"; ErrorAction = "Stop" }
-    if ($Body) { $params.Body = ($Body | ConvertTo-Json -Depth 6) }
+    if ($Body) {
+        $json = $Body | ConvertTo-Json -Depth 6
+        $params.Body = $json
+        $dump = Join-Path ([IO.Path]::GetTempPath()) "opencode\render-last-body.json"
+        [IO.File]::WriteAllText($dump, $json)
+    }
     try { Invoke-RestMethod @params }
     catch {
-        $detail = ""
-        if ($_.Exception.Response) {
+        $detail = $_.ErrorDetails.Message
+        if (-not $detail -and $_.Exception.Response) {
             try {
-                $reader = New-Object IO.StreamReader($_.Exception.Response.GetResponseStream())
+                $stream = $_.Exception.Response.GetResponseStream()
+                if ($stream.CanSeek) { $stream.Position = 0 }
+                $reader = New-Object IO.StreamReader($stream)
                 $detail = $reader.ReadToEnd()
             } catch {}
         }
@@ -68,7 +78,14 @@ if (-not $jwtPassphrase) { throw "JWT_PASSPHRASE introuvable dans backend\.env" 
 # ---------- 2. Normalisation de l'URL de la base ----------
 $dbUrl = $DatabaseUrl.Trim()
 if ($dbUrl.StartsWith("postgres://")) { $dbUrl = "postgresql://" + $dbUrl.Substring("postgres://".Length) }
-if ($dbUrl.StartsWith("postgresql://") -and $dbUrl -notmatch "\?") { $dbUrl += "?sslmode=require" }
+$dbUrl = $dbUrl -replace "&?channel_binding=\w+", ""
+if ($dbUrl.StartsWith("postgresql://")) {
+    if ($dbUrl -notmatch "\?") { $dbUrl += "?" }
+    elseif ($dbUrl -notmatch "\?$") { $dbUrl += "&" }
+    if ($dbUrl -notmatch "sslmode=") { $dbUrl += "sslmode=require&" }
+    if ($dbUrl -notmatch "serverVersion=") { $dbUrl += "serverVersion=16&" }
+    $dbUrl = $dbUrl.TrimEnd("&")
+}
 
 # ---------- 3. Secrets ----------
 $rng = [Security.Cryptography.RandomNumberGenerator]::Create()
@@ -91,48 +108,87 @@ foreach ($k in @("FIREBASE_PROJECT_ID", "FIREBASE_API_KEY", "FIREBASE_AUTH_DOMAI
     if ($v) { $envVars += @{ key = $k; value = $v } }
 }
 
-# ---------- 4. Workspace Render ----------
-$owners = Invoke-Render -Method GET -Uri "https://api.render.com/v1/owners"
-$ownerId = $owners[0].id
-Write-Host ">> Workspace Render : $($owners[0].name) ($ownerId)"
+# Bootstrap (plan gratuit) : schema + compte Fondateur au demarrage du conteneur.
+if ($BootstrapSchema) { $envVars += @{ key = "BOOTSTRAP_SCHEMA"; value = "1" } }
+if ($AdminEmail -and $AdminPassword) {
+    $envVars += @(
+        @{ key = "ADMIN_EMAIL"; value = $AdminEmail },
+        @{ key = "ADMIN_PASSWORD"; value = $AdminPassword },
+        @{ key = "ADMIN_NOM"; value = $AdminNom },
+        @{ key = "ADMIN_PRENOM"; value = $AdminPrenom },
+        @{ key = "ADMIN_TELEPHONE"; value = $AdminTelephone }
+    )
+}
 
-# ---------- 5. Creation du service ----------
+function Invoke-JobAndWait {
+    param([string]$ServiceId, [string]$Command, [string]$Label)
+    $job = Invoke-Render -Method POST -Uri "https://api.render.com/v1/services/$ServiceId/jobs" -Body @{ startCommand = $Command }
+    if (-not $job.id) { throw "Reponse inattendue a la creation du job : $($job | ConvertTo-Json -Depth 3)" }
+    Write-Host ">> Job '$Label' lance ($($job.id))"
+    $deadline = (Get-Date).AddMinutes(10)
+    while ((Get-Date) -lt $deadline) {
+        Start-Sleep -Seconds 15
+        $j = Invoke-Render -Method GET -Uri "https://api.render.com/v1/services/$ServiceId/jobs/$($job.id)"
+        if ($j.job) { $j = $j.job }
+        Write-Host ("   [{0}] {1} : {2}" -f (Get-Date -Format HH:mm:ss), $Label, $j.status)
+        if ($j.status -in @("succeeded")) { return }
+        if ($j.status -in @("failed", "canceled")) { throw "Job '$Label' echoue ($($j.status)). Logs : dashboard Render > Jobs." }
+    }
+    throw "Timeout du job '$Label'."
+}
+
+# ---------- 4. Workspace Render ----------
+$ownersResp = Invoke-Render -Method GET -Uri "https://api.render.com/v1/owners"
+if ($ownersResp.owner) { $owner = $ownersResp.owner } else { $owner = @($ownersResp)[0] }
+if (-not $owner -or -not $owner.id) { throw "Impossible de determiner l'identifiant workspace Render." }
+$ownerId = $owner.id
+Write-Host ">> Workspace Render : $($owner.name) ($ownerId)"
+
+# ---------- 5. Creation / mise a jour du service ----------
+# Schema actuel de l'API : autoDeploy="yes"/"no", details dans serviceDetails,
+# plan par defaut "starter" -> on force "free".
+# NOTE : preDeployCommand et healthCheckPath ne sont PAS supportes sur le plan
+# gratuit -> le schema est cree apres le depot via un job one-off (section 7).
+$serviceDetails = @{
+    runtime = "docker"
+    plan    = "free"
+    region  = $Region
+}
+
 $existing = Invoke-Render -Method GET -Uri "https://api.render.com/v1/services?limit=100"
-$service = $existing | Where-Object { $_.name -eq $ServiceName } | Select-Object -First 1
+$service = @($existing) | ForEach-Object { if ($_.service) { $_.service } else { $_ } } | Where-Object { $_.name -eq $ServiceName } | Select-Object -First 1
 
 if ($service) {
-    Write-Host ">> Le service '$ServiceName' existe deja (mise a jour des variables)..."
+    Write-Host ">> Le service '$ServiceName' existe deja -> mise a jour des variables..."
     $body = @{
-        autoDeploy        = $true
-        branch            = $Branch
-        rootDir           = "backend"
-        runtime           = "docker"
-        plan              = "free"
-        region            = $Region
-        healthCheckPath   = "/api/regions"
-        preDeployCommand  = "php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration"
-        envVars           = $envVars
+        autoDeploy     = "yes"
+        branch         = $Branch
+        rootDir        = "backend"
+        envVars        = $envVars
+        serviceDetails = $serviceDetails
     }
-    $service = Invoke-Render -Method PATCH -Uri "https://api.render.com/v1/services/$($service.id)" -Body $body
+    $null = Invoke-Render -Method PATCH -Uri "https://api.render.com/v1/services/$($service.id)" -Body $body
+    $serviceId = $service.id
+    Write-Host ">> Declenchement d'un nouveau deploiement..."
+    $null = Invoke-Render -Method POST -Uri "https://api.render.com/v1/services/$serviceId/deploys" -Body @{}
 } else {
     Write-Host ">> Creation du service '$ServiceName'..."
     $body = @{
-        autoDeploy        = $true
-        branch            = $Branch
-        name              = $ServiceName
-        ownerId           = $ownerId
-        repo              = $RepoUrl
-        rootDir           = "backend"
-        runtime           = "docker"
-        plan              = "free"
-        region            = $Region
-        healthCheckPath   = "/api/regions"
-        preDeployCommand  = "php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration"
-        envVars           = $envVars
+        type           = "web_service"
+        name           = $ServiceName
+        ownerId        = $ownerId
+        repo           = $RepoUrl
+        branch         = $Branch
+        rootDir        = "backend"
+        autoDeploy     = "yes"
+        envVars        = $envVars
+        serviceDetails = $serviceDetails
     }
-    $service = Invoke-Render -Method POST -Uri "https://api.render.com/v1/services" -Body $body
+    $resp = Invoke-Render -Method POST -Uri "https://api.render.com/v1/services" -Body $body
+    if ($resp.service -and $resp.service.id) { $serviceId = $resp.service.id }
+    elseif ($resp.id) { $serviceId = $resp.id }
+    else { throw "Creation OK mais identifiant introuvable dans la reponse." }
 }
-$serviceId = $service.id
 Write-Host ">> Service ID : $serviceId"
 
 # ---------- 6. Attente du deploiement ----------
@@ -142,25 +198,22 @@ $status = $null
 while ((Get-Date) -lt $deadline) {
     Start-Sleep -Seconds 20
     $deploys = Invoke-Render -Method GET -Uri "https://api.render.com/v1/services/$serviceId/deploys?limit=1"
-    $status = $deploys[0].status
+    $d = @($deploys)[0]
+    if ($d -and $d.deploy) { $d = $d.deploy }
+    $status = $d.status
     Write-Host ("   [{0}] statut = {1}" -f (Get-Date -Format HH:mm:ss), $status)
     if ($status -in @("live", "deactivated")) { break }
-    if ($status -in @("build_failed", "canceled")) { throw "Deploiement echoue (statut: $status). Consultez les logs sur le dashboard Render." }
+    if ($status -in @("build_failed", "canceled", "pre_deploy_failed", "deploy_failed")) { throw "Deploiement echoue (statut: $status). Consultez les logs sur le dashboard Render." }
 }
 if ($status -ne "live") { throw "Timeout : le deploiement n'est pas passe en 'live'." }
 
 # ---------- 7. URL finale ----------
+# NOTE : les jobs one-off Render exigent un plan payant. Le schema et le compte
+# Fondateur sont donc crees au demarrage du conteneur via start.sh
+# (variables BOOTSTRAP_SCHEMA / ADMIN_* - voir sections 3bis et DEPLOYMENT.md).
 $svc = Invoke-Render -Method GET -Uri "https://api.render.com/v1/services/$serviceId"
 $apiUrl = $svc.serviceDetails.url
 if (-not $apiUrl) { $apiUrl = "https://$ServiceName.onrender.com" }
-
-# ---------- 8. Compte Fondateur (optionnel) ----------
-if ($AdminEmail -and $AdminPassword) {
-    Write-Host ">> Creation du compte Fondateur (job one-off)..."
-    $cmd = "php bin/console app:create-admin FONDATEUR $AdminEmail '$AdminNom' '$AdminPrenom' '$AdminTelephone' '$AdminPassword'"
-    $null = Invoke-Render -Method POST -Uri "https://api.render.com/v1/services/$serviceId/jobs" -Body @{ command = $cmd }
-    Write-Host ">> Job lance - verifiez l'onglet Jobs du dashboard Render."
-}
 
 Write-Host ""
 Write-Host "=============================================="

@@ -46,6 +46,19 @@ cd "$APP_DIR"
 echo ">> Warmup du cache Symfony (prod)..."
 php bin/console cache:warmup --env=prod
 
+# ---------- 4bis. Bootstrap (plans gratuits : pas de jobs one-off) ----------
+# Active en mettant BOOTSTRAP_SCHEMA=1 sur le service ; desactive ensuite.
+if [ "$BOOTSTRAP_SCHEMA" = "1" ]; then
+    echo ">> BOOTSTRAP : synchronisation du schema de la base..."
+    php bin/console doctrine:schema:update --force || echo "!! schema:update a echoue"
+fi
+if [ -n "$ADMIN_EMAIL" ] && [ -n "$ADMIN_PASSWORD" ]; then
+    echo ">> BOOTSTRAP : creation/maj du compte Fondateur (${ADMIN_EMAIL})..."
+    php bin/console app:create-admin FONDATEUR "$ADMIN_EMAIL" "${ADMIN_NOM:-Fondateur}" "${ADMIN_PRENOM:-Avis}" "${ADMIN_TELEPHONE:-+237600000000}" "$ADMIN_PASSWORD" \
+        && echo ">> Compte Fondateur pret." \
+        || echo ">> Compte deja existant ou erreur (ignore)."
+fi
+
 chown -R www-data:www-data var config/jwt public/uploads
 
 # ---------- 5. Apache sur le port Render ($PORT, défaut 80) ----------
