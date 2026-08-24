@@ -1,0 +1,12 @@
+# Fins de ligne cohérentes (les scripts sh doivent être en LF même sous Windows)
+*.sh text eol=lf
+*.conf text eol=lf
+Dockerfile text eol=lf
+
+# Binaires / images jamais modifiés par git
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pem binary

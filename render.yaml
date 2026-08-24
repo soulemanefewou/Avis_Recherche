@@ -1,0 +1,53 @@
+# ==============================================================================
+# Blueprint Render — déploie automatiquement le backend Symfony.
+#
+# Utilisation :
+#   1. Pousser ce fichier à la racine du dépôt GitHub
+#   2. Sur https://dashboard.render.com : New → Blueprint → sélectionner le dépôt
+#   3. Renseigner les variables marquées `sync: false` dans l'interface
+#
+# La base de données se crée séparément (voir DEPLOYMENT.md) :
+#   - MySQL   : Dashboard → New → MySQL (plan payant, zéro changement de code)
+#   - Postgres: Dashboard → New → PostgreSQL (plan gratuit — voir DEPLOYMENT.md §B.2)
+# ==============================================================================
+
+services:
+  - type: web
+    name: avis-recherche-api
+    runtime: docker
+    rootDir: backend
+    plan: free # passer à "starter" pour éviter la mise en veille après inactivité
+    healthCheckPath: /api/regions
+    autoDeploy: true
+
+    # Migrations exécutées avant chaque bascule de trafic
+    preDeployCommand: php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
+
+    envVars:
+      # ---------- Fournis par la plateforme / valeurs sûres ----------
+      - key: APP_ENV
+        value: prod
+      - key: APP_DEBUG
+        value: "0"
+      - key: TRUSTED_PROXIES
+        value: "*"
+      # APP_BASE_URL est déduite de RENDER_EXTERNAL_URL par docker/start.sh ;
+      # décommentez pour forcer une valeur :
+      # - key: APP_BASE_URL
+      #   value: https://avis-recherche-api.onrender.com
+
+      # ---------- Secrets (à renseigner manuellement dans le dashboard) ----------
+      - key: APP_SECRET
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_PASSPHRASE
+        sync: false
+      - key: JWT_SECRET_KEY_B64
+        sync: false
+      - key: JWT_PUBLIC_KEY_B64
+        sync: false
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_CREDENTIALS_JSON_B64
+        sync: false

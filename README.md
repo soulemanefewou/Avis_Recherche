@@ -593,6 +593,8 @@ npm run dev
 
 Application disponible sur **http://localhost:3000** (l'API est proxifiée automatiquement).
 
+> 🚀 **Mise en production** : le guide complet d'hébergement (backend sur **Render**, frontend sur **Vercel**) se trouve dans [`DEPLOYMENT.md`](DEPLOYMENT.md).
+
 ---
 
 ## 🛠️ 12. Commandes console utiles

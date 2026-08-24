@@ -361,43 +361,44 @@ export default function HomePage() {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2 mt-4 mb-2">
-                          <AvisStatutBadge statut={avis.statut} />
-                          <AvisTypeBadge type={avis.type} />
-                        </div>
+                        <div className="pt-3 border-t border-[#1f2937]/50 mt-auto space-y-3">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <AvisStatutBadge statut={avis.statut} />
+                            <AvisTypeBadge type={avis.type} />
+                          </div>
 
-                        <div className="pt-3 border-t border-[#1f2937]/50 flex items-center gap-2">
-                          <Link href={`/avis/${avis.id}`} className="flex-1">
-                            <div className="flex items-center justify-center gap-1.5 text-xs font-medium py-2 px-3 rounded-lg border border-[#1f2937]/80 text-gray-300 hover:text-white hover:bg-white/5 hover:border-[#1f2937] transition-all duration-200 cursor-pointer">
-                              <Eye className="h-3.5 w-3.5" />
-                              Consulter
-                            </div>
-                          </Link>
-                          
-                          <Link href={`/avis/${avis.id}?report=true`} className="flex-1">
-                            <div className="flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg bg-gradient-to-r from-[#ef4444] to-[#dc2626] text-white hover:from-[#dc2626] hover:to-[#b91c1c] transition-all duration-200 shadow-md shadow-[#ef4444]/10 cursor-pointer">
-                              <Send className="h-3.5 w-3.5" />
-                              Indice
-                              <ChevronRight className="h-3 w-3" />
-                            </div>
-                          </Link>
+                          <div className="flex items-center gap-2">
+                            <Link href={`/avis/${avis.id}`} className="flex-1">
+                              <div className="flex items-center justify-center gap-1.5 text-xs font-medium py-2 px-3 rounded-lg border border-[#1f2937]/80 text-gray-300 hover:text-white hover:bg-white/5 hover:border-[#1f2937] transition-all duration-200 cursor-pointer">
+                                <Eye className="h-3.5 w-3.5" />
+                                Consulter la fiche
+                              </div>
+                            </Link>
+                            
+                            <Link href={`/avis/${avis.id}?report=true`} className="flex-1">
+                              <div className="flex items-center justify-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg bg-gradient-to-r from-[#ef4444] to-[#dc2626] text-white hover:from-[#dc2626] hover:to-[#b91c1c] transition-all duration-200 shadow-md shadow-[#ef4444]/10 cursor-pointer">
+                                <Send className="h-3.5 w-3.5" />
+                                Indice
+                              </div>
+                            </Link>
 
-                          <AvisShareButtons
-                            compact
-                            id={avis.id}
-                            prenom={avis.prenom}
-                            nom={avis.nom}
-                            ageApprox={avis.ageApprox}
-                            dateDisparition={avis.dateDisparition}
-                            dernierLieuVu={avis.dernierLieuVu}
-                            telephone={avis.telephone}
-                            photoUrl={
-                              avis.photos.find((p) => p.estPrincipale)?.url || avis.photos[0]?.url
-                            }
-                            description={avis.description}
-                            villeNom={avis.ville?.nom}
-                            regionNom={avis.region?.nom}
-                          />
+                            <AvisShareButtons
+                              compact
+                              id={avis.id}
+                              prenom={avis.prenom}
+                              nom={avis.nom}
+                              ageApprox={avis.ageApprox}
+                              dateDisparition={avis.dateDisparition}
+                              dernierLieuVu={avis.dernierLieuVu}
+                              telephone={avis.telephone}
+                              photoUrl={
+                                avis.photos.find((p) => p.estPrincipale)?.url || avis.photos[0]?.url
+                              }
+                              description={avis.description}
+                              villeNom={avis.ville?.nom}
+                              regionNom={avis.region?.nom}
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
