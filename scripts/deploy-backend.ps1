@@ -164,10 +164,11 @@ if ($service) {
         autoDeploy     = "yes"
         branch         = $Branch
         rootDir        = "backend"
-        envVars        = $envVars
         serviceDetails = $serviceDetails
     }
     $null = Invoke-Render -Method PATCH -Uri "https://api.render.com/v1/services/$($service.id)" -Body $body
+    # NB : PATCH /services/{id} ignore les envVars -> endpoint dedie obligatoire.
+    $null = Invoke-Render -Method PUT -Uri "https://api.render.com/v1/services/$($service.id)/env-vars" -Body $envVars
     $serviceId = $service.id
     Write-Host ">> Declenchement d'un nouveau deploiement..."
     $null = Invoke-Render -Method POST -Uri "https://api.render.com/v1/services/$serviceId/deploys" -Body @{}

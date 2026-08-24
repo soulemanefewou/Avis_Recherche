@@ -41,6 +41,24 @@ if [ -z "$APP_BASE_URL" ] || [ "$APP_BASE_URL" = "http://localhost:8000" ]; then
 fi
 echo ">> APP_BASE_URL = ${APP_BASE_URL:-non définie}"
 
+# ---------- 3bis. Synchronisation .env <- environnement ----------
+# Apache/mod_php ne recoit pas toujours l'environnement du conteneur : on
+# reecrit les variables de config directement dans .env pour que toutes les
+# couches (CLI comme HTTP) lisent les memes valeurs.
+# Les placeholders sensibles du fichier sont remplaces par les vraies valeurs.
+if [ -f "$APP_DIR/.env" ]; then
+    for k in DATABASE_URL APP_SECRET TRUSTED_PROXIES JWT_PASSPHRASE \
+             FIREBASE_CREDENTIALS_JSON_B64 FIREBASE_PROJECT_ID FIREBASE_API_KEY \
+             FIREBASE_AUTH_DOMAIN FIREBASE_STORAGE_BUCKET FIREBASE_MESSAGING_SENDER_ID \
+             FIREBASE_APP_ID APP_BASE_URL; do
+        eval "val=\${$k}"
+        if [ -n "$val" ]; then
+            sed -i "/^${k}=/d" "$APP_DIR/.env"
+            printf '%s="%s"\n' "$k" "$val" >> "$APP_DIR/.env"
+        fi
+    done
+fi
+
 # ---------- 4. Cache prod ----------
 cd "$APP_DIR"
 echo ">> Warmup du cache Symfony (prod)..."
