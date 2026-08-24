@@ -6,9 +6,10 @@
 #   2. Sur https://dashboard.render.com : New → Blueprint → sélectionner le dépôt
 #   3. Renseigner les variables marquées `sync: false` dans l'interface
 #
-# La base de données se crée séparément (voir DEPLOYMENT.md) :
-#   - MySQL   : Dashboard → New → MySQL (plan payant, zéro changement de code)
-#   - Postgres: Dashboard → New → PostgreSQL (plan gratuit — voir DEPLOYMENT.md §B.2)
+# La base de données se crée séparément (voir DEPLOYMENT.md §A.2) :
+#   - Neon (PostgreSQL gratuit durable, recommandé) : connection string → DATABASE_URL
+#   - Render PostgreSQL : Dashboard → New → PostgreSQL (gratuit 30 jours ou payant)
+#   - TiDB Cloud (MySQL compatible) : zéro changement de code
 # ==============================================================================
 
 services:

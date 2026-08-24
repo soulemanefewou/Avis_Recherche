@@ -5,7 +5,7 @@ Ce document détaille **étape par étape** la mise en production de l'applicati
 | Composant | Plateforme | Technologie |
 |---|---|---|
 | API Symfony 7.4 | **Render** | Conteneur Docker (`backend/Dockerfile`) |
-| Base de données | **Render** | MySQL *(payant)* ou PostgreSQL *(gratuit)* |
+| Base de données | **Neon** (PostgreSQL gratuit durable) ou Render Postgres — voir §A.2 |
 | Frontend Next.js 16 | **Vercel** | Déploiement natif Next.js |
 
 ```
@@ -67,33 +67,58 @@ Le dépôt contient déjà tout le nécessaire :
 | `backend/config/packages/framework.yaml` | `trusted_proxies` configuré (derrière les proxies Render) |
 | `backend/config/services.yaml` | `app_base_url` piloté par la variable `APP_BASE_URL` |
 
-## A.2 Créer la base de données sur Render
+## A.2 Créer la base de données
 
-### Option A — MySQL (recommandée, zéro changement de code)
+⚠️ **Point important** : Render ne propose **pas** de base MySQL managée. Son offre native est
+PostgreSQL (+ Redis). Pour du MySQL il faut auto-héberger un conteneur avec un disque payant.
 
-1. Dashboard Render → **New →** **MySQL**
-2. Nom : `avis-recherche-db` ; région : la plus proche ; plan : *Basic* (à partir de ~6 $/mois — le gratuit n'existe pas pour MySQL)
-3. Une fois créée, récupérez les **External Database URL** / informations de connexion.
-4. Construisez votre `DATABASE_URL` :
+### Option A — PostgreSQL externe gratuit chez Neon (recommandée : gratuite ET durable)
 
-```
-mysql://UTILISATEUR:MOT_DE_PASSE@HOST:3306/NOM_BASE?serverVersion=8&charset=utf8mb4
-```
+1. Créez un compte sur [neon.tech](https://neon.tech) (aucune carte bancaire requise).
+2. Créez un projet → copiez la **connection string** fournie :
+   ```
+   postgresql://user:pass@ep-xxx.eu-central-1.aws.neon.tech/neondb?sslmode=require
+   ```
+3. C'est votre `DATABASE_URL`. Le schéma sera créé automatiquement au premier déploiement
+   (voir la remarque sur les migrations ci-dessous).
 
-> Les migrations existantes ont été générées pour MariaDB/MySQL : elles fonctionneront telles quelles.
+> ✅ Pas d'expiration, 512 Mo de stockage gratuit, sauvegardes point-in-time.
 
-### Option B — PostgreSQL (gratuit, avec adaptation)
+### Option B — PostgreSQL Render gratuit (test uniquement : expire après 30 jours)
 
 1. Dashboard Render → **New →** **PostgreSQL** → plan *Free*
-2. ⚠️ Les migrations actuelles contiennent du SQL spécifique MySQL (`AUTO_INCREMENT`, moteur InnoDB). Avec PostgreSQL :
-   - changez le driver dans l'URL : `postgresql://user:pass@host/db`
-   - **ne lancez pas** les migrations existantes ; créez le schéma initial via un Shell Render :
-     ```bash
-     php bin/console doctrine:schema:update --force --complete
-     ```
-   - pour la suite, régénérez vos migrations après avoir basculé la connexion locale sur PostgreSQL.
+2. Récupérez l'**External Database URL**.
+3. ⚠️ La base est **suspendue puis supprimée ~30 jours après sa création**
+   (+ 14 jours de grâce pour passer en payant). Idéal pour une démo ponctuelle,
+   pas pour des données à conserver.
 
-> 💡 Pour un projet de démonstration/défense, l'option B est entièrement gratuite. Pour une mise en production sérieuse, préférez l'option A.
+### Option C — MySQL compatible gratuit chez TiDB Cloud (zéro changement de code)
+
+1. Compte sur [tidbcloud.com](https://tidbcloud.com) → cluster *Serverless* gratuit.
+2. Connection string type :
+   ```
+   mysql://user:pass@gateway01.xxx.prod.aws.tidbcloud.com:4000/avis_recherche?serverVersion=8&charset=utf8mb4
+   ```
+> Les migrations MySQL existantes fonctionnent telles quelles (TiDB est compatible MySQL 8).
+
+### Option D — Payant tout-en-un sur Render
+
+- **PostgreSQL Basic** (~6 $/mois) : Dashboard → New → PostgreSQL, plan payant.
+- **MySQL auto-hébergé** (~7 $/mois minimum) : déployez le template
+  [render.com/templates/mysql](https://render.com/templates/mysql)
+  (conteneur privé + disque persistant). Déploiement manuel recommandé pour cette option.
+
+### Adaptation PostgreSQL (options A, B, D-PG)
+
+Les migrations actuelles contiennent du SQL spécifique MySQL (`AUTO_INCREMENT`, moteur InnoDB).
+Avec PostgreSQL :
+
+- changez le driver dans l'URL : `postgresql://user:pass@host/db`
+- **ne lancez pas** les migrations existantes ; créez le schéma initial via un Shell Render :
+  ```bash
+  php bin/console doctrine:schema:update --force --complete
+  ```
+- pour la suite, régénérez vos migrations après avoir basculé la connexion locale sur PostgreSQL.
 
 ## A.3 Générer les secrets localement
 
@@ -239,7 +264,7 @@ Après les deux déploiements, testez dans l'ordre :
 |---|---|---|
 | **Mise en veille (plan Free)** | L'API Render gratuite s'endort après ~15 min d'inactivité ; premier appel lent (~30–60 s) | Plan *Starter*, ou « ping » périodique (cron externe type UptimeRobot) |
 | **Disque éphémère** | Sur Render, le système de fichiers est réinitialisé à chaque redéploiement/redémarrage → **les photos uploadées disparaissent** | Ajouter un **Disk** persistant (Settings → Disks, monté sur `/var/www/html/public/uploads`, plan payant), ou migrer vers du stockage objet (S3, Cloud Storage) |
-| **PostgreSQL gratuit** | Expire/suspendu selon la politique Render du moment | Sauvegardez vos données ; MySQL payant = plus fiable |
+| **PostgreSQL gratuit Render** | Expire ~30 jours après création, puis suppression des données | Utilisez **Neon** (gratuit durable) ou un plan payant pour conserver les données |
 | **Cron « suivi quotidien »** | La commande `app:suivi-quotidien` ne tourne pas seule | Render → New → **Cron Job** (image Docker du backend, même variables) avec la commande `php bin/console app:suivi-quotidien`, planifiée une fois par jour |
 | **Secrets** | Jamais dans git | Tout passe par les dashboards Render/Vercel ; rotation possible à tout moment (redéploiement requis) |
 
