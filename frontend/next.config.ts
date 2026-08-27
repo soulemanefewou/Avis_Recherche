@@ -41,6 +41,19 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  // Cache CDN edge pour les fichiers uploads servis via le proxy Vercel :
+  // apres le premier chargement, Vercel sert l'image depuis son CDN sans
+  // re-impacter le conteneur Render (evite le cold start du plan gratuit).
+  async headers() {
+    return [
+      {
+        source: "/uploads/:path*",
+        headers: [
+          { key: "Cache-Control", value: "public, s-maxage=86400, max-age=86400, immutable" },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import api from "@/lib/api";
+import { photoSrc } from "@/lib/photo";
 import { useAuth } from "@/lib/auth-context";
 import { AvisStatutBadge } from "@/components/ui/Badge";
 import AvisShareButtons from "@/components/AvisShareButtons";
@@ -262,7 +263,7 @@ export default function CommissariatAvisDetailPage() {
       {photos.length > 0 ? (
         <div className="rounded-xl border border-[#1f2937]/80 bg-[#0e1420]/60 backdrop-blur-sm overflow-hidden animate-fade-in">
           <div className="mx-auto max-w-4xl aspect-[139/95] max-h-[85vh] bg-[#0b0f17] relative">
-            <img src={activePhoto.url} alt={`${avis.prenom} ${avis.nom}`} className="w-full h-full object-cover" />
+            <img src={photoSrc(activePhoto.url)} alt={`${avis.prenom} ${avis.nom}`} className="w-full h-full object-cover" />
           </div>
           {photos.length > 1 && (
             <div className="flex gap-2 p-3 border-t border-[#1f2937]/50 bg-[#0b0f17]/60 overflow-x-auto">
@@ -274,7 +275,7 @@ export default function CommissariatAvisDetailPage() {
                     idx === activePhotoIdx ? "border-[#ef4444] shadow-sm shadow-[#ef4444]/20" : "border-[#1f2937]/80 hover:border-[#374151]"
                   }`}
                 >
-                  <img src={photo.url} alt="" className="w-full h-full object-cover" />
+                  <img src={photoSrc(photo.url)} alt="" className="w-full h-full object-cover" />
                 </button>
               ))}
             </div>
@@ -399,7 +400,7 @@ export default function CommissariatAvisDetailPage() {
                   dateDisparition={avis.dateDisparition}
                   dernierLieuVu={avis.dernierLieuVu}
                   telephone={avis.telephone}
-                  photoUrl={photos.find((p) => p.estPrincipale)?.url || photos[0]?.url}
+                  photoUrl={photoSrc(photos.find((p) => p.estPrincipale)?.url || photos[0]?.url)}
                   description={avis.description}
                   villeNom={avis.ville?.nom}
                   regionNom={avis.region?.nom}

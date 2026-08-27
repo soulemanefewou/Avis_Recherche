@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import api from "@/lib/api";
+import { photoSrc } from "@/lib/photo";
 import { useAuth } from "@/lib/auth-context";
 import type { AvisRecherche } from "@/lib/types";
 import { AvisStatutBadge, AvisTypeBadge } from "@/components/ui/Badge";
@@ -222,7 +223,7 @@ export default function CommissariatAvisPage() {
                   <div className="aspect-[3/4] overflow-hidden bg-[#0b0f17] relative">
                     {avis.photos.length > 0 ? (
                       <img
-                        src={avis.photos.find((p) => p.estPrincipale)?.url || avis.photos[0].url}
+                        src={photoSrc(avis.photos.find((p) => p.estPrincipale)?.url || avis.photos[0].url)}
                         alt={`${avis.prenom} ${avis.nom}`}
                         className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                       />

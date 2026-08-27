@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import api from "@/lib/api";
+import { photoSrc } from "@/lib/photo";
 import type { AvisRecherche, Region } from "@/lib/types";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
@@ -314,7 +315,7 @@ export default function HomePage() {
                       <div className="relative w-full aspect-[3/4] overflow-hidden bg-[#0b0f17]">
                         {avis.photos.length > 0 ? (
                           <img
-                            src={avis.photos.find((p) => p.estPrincipale)?.url || avis.photos[0].url}
+                            src={photoSrc(avis.photos.find((p) => p.estPrincipale)?.url || avis.photos[0].url)}
                             alt={`${avis.prenom} ${avis.nom}`}
                             className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                           />
@@ -392,7 +393,7 @@ export default function HomePage() {
                               dernierLieuVu={avis.dernierLieuVu}
                               telephone={avis.telephone}
                               photoUrl={
-                                avis.photos.find((p) => p.estPrincipale)?.url || avis.photos[0]?.url
+                                photoSrc(avis.photos.find((p) => p.estPrincipale)?.url || avis.photos[0]?.url)
                               }
                               description={avis.description}
                               villeNom={avis.ville?.nom}

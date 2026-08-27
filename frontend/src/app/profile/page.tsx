@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import api from "@/lib/api";
+import { photoSrc } from "@/lib/photo";
 import { useAuth } from "@/lib/auth-context";
 import type { AvisRecherche, Region } from "@/lib/types";
 import { ChevronLeft, User, MapPin, Calendar, Phone, Mail, Save, X, AlertCircle, Image as ImageIcon, ChevronDown } from "lucide-react";
@@ -281,7 +282,7 @@ export default function ProfilePage() {
               <Link key={avis.id} href={`/avis/${avis.id}`} className="block rounded-xl border border-[#1f2937]/80 bg-[#0e1420]/60 backdrop-blur-sm overflow-hidden hover:border-[#ef4444]/30 hover:bg-[#ef4444]/5 transition-all duration-200 group">
                 <div className="aspect-[3/2] bg-[#0b0f17] overflow-hidden relative">
                   {avis.photos.length > 0 ? (
-                    <img src={avis.photos.find((p) => p.estPrincipale)?.url || avis.photos[0].url} alt={`${avis.prenom} ${avis.nom}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <img src={photoSrc(avis.photos.find((p) => p.estPrincipale)?.url || avis.photos[0].url)} alt={`${avis.prenom} ${avis.nom}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <User className="h-10 w-10 text-gray-700" />

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import api from '@/lib/api';
+import { photoSrc } from '@/lib/photo';
 import { useAuth } from '@/lib/auth-context';
 import type { AvisRecherche, Signalement, Photo } from '@/lib/types';
 import Button from '@/components/ui/Button';
@@ -230,10 +231,10 @@ export default function AvisDetailClient() {
           <>
             <div
               className="h-64 md:h-96 bg-slate-950 relative cursor-pointer group"
-              onClick={() => activePhoto.url && setSelectedPhoto(activePhoto.url)}
+              onClick={() => photoSrc(activePhoto.url) && setSelectedPhoto(photoSrc(activePhoto.url))}
             >
               <img
-                src={activePhoto.url}
+                src={photoSrc(activePhoto.url)}
                 alt={`${avis.prenom} ${avis.nom}`}
                 className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]"
               />
@@ -253,7 +254,7 @@ export default function AvisDetailClient() {
                       idx === activePhotoIdx ? 'border-[#ef4444] shadow-md shadow-[#ef4444]/20' : 'border-[#1f2937]'
                     }`}
                   >
-                    <img src={photo.url} alt="" className="w-full h-full object-cover" />
+                    <img src={photoSrc(photo.url)} alt="" className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>
@@ -402,7 +403,7 @@ export default function AvisDetailClient() {
             dateDisparition={avis.dateDisparition}
             dernierLieuVu={avis.dernierLieuVu}
             telephone={avis.telephone}
-            photoUrl={mainPhoto?.url}
+            photoUrl={photoSrc(mainPhoto?.url)}
             description={avis.description}
             villeNom={avis.ville?.nom}
             regionNom={avis.region?.nom}

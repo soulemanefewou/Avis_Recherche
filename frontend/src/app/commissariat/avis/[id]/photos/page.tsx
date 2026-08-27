@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import api from "@/lib/api";
+import { photoSrc } from "@/lib/photo";
 import { useAuth } from "@/lib/auth-context";
 import { ChevronLeft, Trash2, Upload, Image as ImageIcon, AlertCircle, CheckCircle2, Star, X } from "lucide-react";
 
@@ -231,7 +232,7 @@ export default function CommissariatManagePhotosPage() {
             {avis.photos.map((photo) => (
               <div key={photo.id} className={`relative rounded-xl border overflow-hidden bg-[#0b0f17]/60 group ${photo.estPrincipale ? "border-[#ef4444]/50 ring-1 ring-[#ef4444]/20" : "border-[#1f2937]/50"}`}>
                 <div className="aspect-[3/4] relative overflow-hidden bg-[#0b0f17]">
-                  <img src={photo.url} alt={photo.nomOriginal} className="w-full h-full object-cover" />
+                  <img src={photoSrc(photo.url)} alt={photo.nomOriginal} className="w-full h-full object-cover" />
                   {photo.estPrincipale && (
                     <span className="absolute top-2 left-2 bg-[#ef4444] text-white text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full shadow-sm z-10 flex items-center gap-1">
                       <Star className="h-2.5 w-2.5 fill-white" />

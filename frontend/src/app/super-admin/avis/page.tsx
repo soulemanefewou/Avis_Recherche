@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import api from "@/lib/api";
+import { photoSrc } from "@/lib/photo";
 import { useAuth } from "@/lib/auth-context";
 import { ChevronLeft, Search, AlertCircle, Eye, CheckCircle2, XCircle, User, MapPin, Phone, Calendar, X, FileWarning, ShieldAlert } from "lucide-react";
 
@@ -403,7 +404,7 @@ export default function SuperAdminAvisPage() {
               <div className="flex gap-2 flex-wrap">
                 {selectedAvis.photos.map((p) => (
                   <div key={p.id} className={`relative w-20 h-20 rounded-lg overflow-hidden border ${p.estPrincipale ? "border-[#ef4444]/50 ring-1 ring-[#ef4444]/20" : "border-[#1f2937]/50"}`}>
-                    <img src={p.url} alt="" className="w-full h-full object-cover" />
+                    <img src={photoSrc(p.url)} alt="" className="w-full h-full object-cover" />
                     {p.estPrincipale && (
                       <span className="absolute bottom-0 inset-x-0 bg-[#ef4444]/90 text-white text-[9px] font-bold text-center py-0.5">Principale</span>
                     )}
