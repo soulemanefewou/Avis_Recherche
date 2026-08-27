@@ -77,6 +77,10 @@ if [ -n "$ADMIN_EMAIL" ] && [ -n "$ADMIN_PASSWORD" ]; then
         || echo ">> Compte deja existant ou erreur (ignore)."
 fi
 
+# ---------- 4ter. Regions et villes du Cameroun (idempotent) ----------
+echo ">> BOOTSTRAP : seed des regions et villes du Cameroun..."
+php bin/console app:seed-regions-villes || echo "!! seed regions/villes a echoue (ignore)"
+
 chown -R www-data:www-data var config/jwt public/uploads
 
 # ---------- 5. Apache sur le port Render ($PORT, défaut 80) ----------

@@ -33,16 +33,16 @@ class SeedRegionsVillesCommand extends Command
         }
 
         $regionsData = [
-            'Adamaoua' => ['code' => 'AD', 'villes' => ['Ngaoundéré', 'Meiganga', 'Tibati', 'Banyo', 'Kontcha']],
-            'Centre' => ['code' => 'CE', 'villes' => ['Yaoundé', 'Mbalmayo', 'Nanga-Eboko', 'Monatélé', 'Eseka', 'Essimbil']],
-            'Est' => ['code' => 'ES', 'villes' => ['Bertoua', 'Batouri', 'Yokadouma', 'Garoua-Boulaï', 'Abong-Mbang']],
-            'Extrême-Nord' => ['code' => 'EN', 'villes' => ['Maroua', 'Kousseri', 'Yagoua', 'Waza', 'Mokolo']],
-            'Littoral' => ['code' => 'LT', 'villes' => ['Douala', 'Edéa', 'Nkongsamba', 'Limbé', 'Buéa', 'Tiko']],
-            'Nord' => ['code' => 'NO', 'villes' => ['Garoua', 'Poli', 'Rey-Bouba', 'Guider', 'Mogode']],
-            'Nord-Ouest' => ['code' => 'NW', 'villes' => ['Bamenda', 'Kumbo', 'Wum', 'Nkambe', 'Fundong']],
-            'Ouest' => ['code' => 'OU', 'villes' => ['Dschang', 'Bafang', 'Mbouda', 'Bangou', 'Bandjoun']],
-            'Sud' => ['code' => 'SU', 'villes' => ['Ebolowa', 'Sangmélima', 'Ambam', 'Kribi', 'Campo']],
-            'Sud-Ouest' => ['code' => 'SW', 'villes' => ['Kumba', 'Mamfe', 'Tiko', 'Ekondo-Titi', 'Idabato']],
+            'Adamaoua' => ['code' => 'AD', 'villes' => ['Ngaoundéré', 'Meiganga', 'Tibati', 'Banyo', 'Kontcha', 'Martap', 'Djohong', 'Ngaoundal', 'Tignère', 'Belel']],
+            'Centre' => ['code' => 'CE', 'villes' => ['Yaoundé', 'Mbalmayo', 'Nanga-Eboko', 'Monatélé', 'Eseka', 'Obala', 'Bafia', 'Ntui', 'Sa\'a', 'Mbandjock', 'Nkoteng', 'Mfou', 'Akono', 'Ngomedzap']],
+            'Est' => ['code' => 'ES', 'villes' => ['Bertoua', 'Batouri', 'Yokadouma', 'Garoua-Boulaï', 'Abong-Mbang', 'Bétaré-Oya', 'Ndelele', 'Dimako', 'Ngoura', 'Mbang', 'Moloundou']],
+            'Extrême-Nord' => ['code' => 'EN', 'villes' => ['Maroua', 'Kousseri', 'Yagoua', 'Mokolo', 'Mora', 'Kaele', 'Bogo', 'Pouss', 'Guidiguis', 'Magui', 'Tokombéré', 'Moutourwa']],
+            'Littoral' => ['code' => 'LT', 'villes' => ['Douala', 'Edéa', 'Nkongsamba', 'Limbé', 'Buéa', 'Tiko', 'Bonabéri', 'Diang', 'Loum', 'Penja', 'Manjo', 'Yabassi']],
+            'Nord' => ['code' => 'NO', 'villes' => ['Garoua', 'Poli', 'Rey-Bouba', 'Guider', 'Pitoa', 'Lagos', 'Gashiga', 'Bibemi', 'Figuil', 'Tcholliré']],
+            'Nord-Ouest' => ['code' => 'NW', 'villes' => ['Bamenda', 'Kumbo', 'Wum', 'Nkambe', 'Fundong', 'Mbengwi', 'Bali', 'Ndop', 'Jakiri', 'Oku', 'Belo', 'Santa']],
+            'Ouest' => ['code' => 'OU', 'villes' => ['Bafoussam', 'Dschang', 'Bafang', 'Mbouda', 'Foumban', 'Foumbot', 'Bandjoun', 'Bamendjou', 'Bangangté', 'Baham', 'Kékem', 'Melong']],
+            'Sud' => ['code' => 'SU', 'villes' => ['Ebolowa', 'Sangmélima', 'Ambam', 'Kribi', 'Campo', 'Mvomeka\'a', 'Zoétélé', 'Oveng', 'Djoum', 'Lobo']],
+            'Sud-Ouest' => ['code' => 'SW', 'villes' => ['Buea', 'Limbe', 'Kumba', 'Mamfe', 'Tiko', 'Ekondo-Titi', 'Mundemba', 'Muyuka', 'Mutengene', 'Idenau', 'Eyumojock', 'Nguti']],
         ];
 
         $regionCount = 0;
