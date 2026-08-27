@@ -69,8 +69,8 @@ class FondateurController extends AbstractController
 
         $totalUtilisateurs = (int) $conn->fetchOne('SELECT COUNT(*) FROM utilisateur');
         $superAdmins = (int) $conn->fetchOne(
-            "SELECT COUNT(*) FROM utilisateur WHERE JSON_CONTAINS(roles, :role)",
-            ['role' => json_encode('ROLE_SUPER_ADMIN')]
+            "SELECT COUNT(*) FROM utilisateur WHERE CAST(roles AS text) LIKE :role",
+            ['role' => '%ROLE_SUPER_ADMIN%']
         );
         $totalCommissariats = (int) $conn->fetchOne('SELECT COUNT(*) FROM commissariat');
 
@@ -145,8 +145,8 @@ class FondateurController extends AbstractController
         }
 
         if ($role) {
-            $where[] = 'JSON_CONTAINS(u.roles, :role)';
-            $params['role'] = json_encode($role);
+            $where[] = 'CAST(u.roles AS text) LIKE :role';
+            $params['role'] = '%' . $role . '%';
         }
 
         $whereClause = $where ? 'WHERE ' . implode(' AND ', $where) : '';
@@ -366,14 +366,17 @@ class FondateurController extends AbstractController
     {
         $this->getAuthUser();
 
+        // NB : JSON_CONTAINS est MySQL/MariaDB et n'existe pas sous PostgreSQL.
+        // On filtre via CAST(roles AS text) LIKE, portable PostgreSQL.
         $conn = $this->em->getConnection();
         $rows = $conn->fetchAllAssociative(
             "SELECT id FROM utilisateur u
-             WHERE JSON_CONTAINS(u.roles, :role) AND NOT JSON_CONTAINS(u.roles, :fondateur)
+             WHERE CAST(u.roles AS text) LIKE :role
+               AND CAST(u.roles AS text) NOT LIKE :fondateur
              ORDER BY u.id DESC",
             [
-                'role' => json_encode('ROLE_SUPER_ADMIN'),
-                'fondateur' => json_encode('ROLE_FONDATEUR'),
+                'role' => '%ROLE_SUPER_ADMIN%',
+                'fondateur' => '%ROLE_FONDATEUR%',
             ]
         );
 

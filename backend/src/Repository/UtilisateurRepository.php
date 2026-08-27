@@ -22,11 +22,22 @@ class UtilisateurRepository extends ServiceEntityRepository
      */
     public function findByRole(string $role): array
     {
-        return $this->createQueryBuilder('u')
-            ->where('u.roles LIKE :role')
-            ->setParameter('role', '%' . $role . '%')
-            ->getQuery()
-            ->getResult();
+        // CAST(roles AS text) : le LIKE direct sur une colonne json echoue en
+        // PostgreSQL ("operator does not exist: json ~~ unknown").
+        $conn = $this->getEntityManager()->getConnection();
+        $rows = $conn->fetchAllAssociative(
+            'SELECT id FROM utilisateur WHERE CAST(roles AS text) LIKE :role',
+            ['role' => '%' . $role . '%']
+        );
+
+        $result = [];
+        foreach ($rows as $row) {
+            $u = $this->find((int) $row['id']);
+            if ($u) {
+                $result[] = $u;
+            }
+        }
+        return $result;
     }
 
     /**

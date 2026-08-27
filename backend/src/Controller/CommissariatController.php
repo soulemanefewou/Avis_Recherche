@@ -844,13 +844,13 @@ class CommissariatController extends AbstractController
 
         $evolutionRows = $conn->fetchAllAssociative(
             "SELECT
-               DATE_FORMAT(a.created_at, '%Y-%m') AS mois,
+               to_char(a.created_at, 'YYYY-MM') AS mois,
                COUNT(*) AS creees,
                SUM(CASE WHEN a.statut = :actif THEN 1 ELSE 0 END) AS activees,
                SUM(CASE WHEN a.statut IN (:s1, :s2) THEN 1 ELSE 0 END) AS retrouves
              FROM avis_recherche a
              WHERE a.type = :type AND a.commissariat_id = :cid
-               AND a.created_at >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+               AND a.created_at >= NOW() - INTERVAL '12 months'
              GROUP BY mois
              ORDER BY mois ASC",
             [
